@@ -1597,5 +1597,62 @@ index abc123..def456 100644
         requestedBaseMode: 'merge-base',
       });
     });
+
+    it('resolves the per-repo default branch merge-base when autoBaseDefaultBranch is set', async () => {
+      const gitDiff = (parser as any).git.diff;
+      const gitRevparse = (parser as any).git.revparse;
+      const gitRaw = (parser as any).git.raw;
+
+      // getOriginDefaultBranch() -> origin/master, then merge-base(HEAD, origin/master).
+      gitRaw.mockImplementation((args: string[]) => {
+        if (args[0] === 'symbolic-ref') {
+          return Promise.resolve('refs/remotes/origin/master\n');
+        }
+        if (args[0] === 'merge-base') {
+          return Promise.resolve('fedcba9876543210fedcba9876543210fedcba98\n');
+        }
+        return Promise.resolve('');
+      });
+      gitRevparse.mockResolvedValueOnce('fedcba9876543210fedcba9876543210fedcba98');
+      gitDiff.mockResolvedValue('');
+
+      const response = await parser.parseDiff({
+        targetCommitish: '.',
+        baseCommitish: 'HEAD',
+        autoBaseDefaultBranch: true,
+      });
+
+      expect(gitRaw).toHaveBeenCalledWith(['symbolic-ref', 'refs/remotes/origin/HEAD']);
+      expect(gitRaw).toHaveBeenCalledWith(['merge-base', 'HEAD', 'origin/master']);
+      expect(gitDiff).toHaveBeenCalledWith([
+        'fedcba9876543210fedcba9876543210fedcba98',
+        '--no-ext-diff',
+        '--color=never',
+      ]);
+      expect(response.baseCommitish).toBe('fedcba9');
+      expect(response.targetCommitish).toBe('.');
+      expect(response.isEmpty).toBe(true);
+    });
+
+    it('falls back to uncommitted-only when auto mode cannot resolve a default branch', async () => {
+      const gitDiff = (parser as any).git.diff;
+      const gitRevparse = (parser as any).git.revparse;
+      const gitRaw = (parser as any).git.raw;
+
+      // No origin/HEAD and no origin/main|master refs -> getOriginDefaultBranch() returns null.
+      gitRaw.mockRejectedValue(new Error('no symbolic ref'));
+      gitRevparse.mockResolvedValueOnce('1111111111111111111111111111111111111111');
+      gitDiff.mockResolvedValue('');
+
+      const response = await parser.parseDiff({
+        targetCommitish: '.',
+        baseCommitish: 'HEAD',
+        autoBaseDefaultBranch: true,
+      });
+
+      // Base degrades to HEAD (uncommitted changes only) instead of throwing.
+      expect(gitRevparse).toHaveBeenCalledWith(['HEAD']);
+      expect(response.targetCommitish).toBe('.');
+    });
   });
 });

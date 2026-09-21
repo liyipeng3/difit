@@ -74,7 +74,10 @@ difit supports special keywords for common diff scenarios:
 difit .        # All uncommitted changes (staging area + unstaged)
 difit staged   # Staging area changes
 difit working  # Unstaged changes only
+difit auto     # Branch changes vs the default branch, including uncommitted work
 ```
+
+`auto` resolves the base per repository to that repo's default branch (`origin/HEAD`, falling back to `origin/main`/`origin/master`) and takes the merge-base with `HEAD`, then diffs against the working tree. On a feature branch it shows every committed and uncommitted change since the branch diverged; on a clean default branch it shows nothing; on a dirty default branch it shows only the uncommitted work. Because the default branch is resolved independently for each repo, `auto` combines naturally with `--repos` to review a whole multi-repo branch in one place.
 
 ### GitHub PR
 

@@ -460,6 +460,12 @@ export async function startServer(
           ? undefined
           : ctx.currentSelection.baseMode,
     );
+    // Preserve the per-repo "auto" default-branch base across reload/watch polls
+    // that carry no explicit base/target. Once the user picks an explicit
+    // revision, auto mode is dropped so the manual selection takes over.
+    if (!hasBase && !hasTarget && ctx.currentSelection.autoBaseDefaultBranch) {
+      requestedSelection.autoBaseDefaultBranch = true;
+    }
     const shouldIncludeCommentImports =
       ctx.initialCommentImports.length > 0 &&
       (useStdin || diffSelectionsEqual(requestedSelection, ctx.initialSelection));

@@ -69,7 +69,10 @@ difit 支持常见差异场景的特殊关键字：
 difit .        # 所有未提交的更改（暂存区 + 未暂存）
 difit staged   # 暂存区更改
 difit working  # 仅未暂存的更改
+difit auto     # 相对默认分支的分支改动，含未提交更改
 ```
+
+`auto` 会按每个仓库各自的默认分支（`origin/HEAD`，回退到 `origin/main`/`origin/master`）解析基线，取其与 `HEAD` 的 merge-base，再和工作区对比。在特性分支上会展示自分叉以来的全部已提交与未提交改动；在干净的默认分支上则为空；在有改动的默认分支上只展示未提交内容。由于默认分支是逐仓独立解析的，`auto` 可以与 `--repos` 天然组合，在一处 review 跨多仓的整条分支改动。
 
 ### GitHub PR
 

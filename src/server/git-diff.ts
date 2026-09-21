@@ -47,6 +47,33 @@ export class GitDiffParser {
   }
 
   private async resolveBaseCommitish(selection: DiffSelection): Promise<string> {
+    // "auto" mode: resolve the base to this repository's own default branch
+    // (origin/HEAD -> origin/main|master) and take merge-base with HEAD so the
+    // diff shows branch-vs-default-branch changes, including uncommitted work.
+    // Resolved per-repo so a single server can host repos with different
+    // defaults and mixed clean/dirty working trees.
+    if (selection.autoBaseDefaultBranch) {
+      const defaultBranch = await this.getOriginDefaultBranch();
+      if (!defaultBranch) {
+        // No resolvable default branch (e.g. no origin): fall back to HEAD so
+        // the diff degrades to "uncommitted changes only" instead of failing.
+        return selection.baseCommitish;
+      }
+      try {
+        const mergeBase = await this.git.raw(['merge-base', 'HEAD', defaultBranch]);
+        return mergeBase.trim();
+      } catch {
+        // HEAD may already be on/behind the default branch with no common
+        // history edge cases; fall back to the default branch tip.
+        try {
+          const resolved = await this.git.revparse([defaultBranch]);
+          return resolved.trim();
+        } catch {
+          return selection.baseCommitish;
+        }
+      }
+    }
+
     if (normalizeBaseMode(selection.baseMode) !== 'merge-base') {
       return selection.baseCommitish;
     }

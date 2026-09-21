@@ -35,11 +35,28 @@ function isSpecialArg(arg: string): arg is SpecialArg {
   return arg === 'working' || arg === 'staged' || arg === '.';
 }
 
+// "auto" shows each repository's branch changes relative to its default branch,
+// including uncommitted work. The default branch is resolved per-repo on the
+// server (origin/HEAD -> origin/main|master) and combined with merge-base, so a
+// single invocation behaves correctly across repos with different defaults and
+// across clean/dirty working trees.
+function isAutoArg(arg: string): boolean {
+  return arg === 'auto';
+}
+
 function resolveDiffSelection(
   commitish: string,
   compareWith?: string,
   mergeBase?: boolean,
 ): DiffSelection {
+  if (isAutoArg(commitish) && !compareWith) {
+    return {
+      baseCommitish: 'HEAD',
+      targetCommitish: '.',
+      autoBaseDefaultBranch: true,
+    };
+  }
+
   let baseCommitish: string;
 
   if (compareWith) {
@@ -104,7 +121,7 @@ program
   .addCommand(createCommentCommand())
   .argument(
     '[commit-ish]',
-    'Git commit, tag, branch, HEAD~n reference, or "working"/"staged"/"."',
+    'Git commit, tag, branch, HEAD~n reference, "working"/"staged"/".", or "auto" (branch changes vs the default branch, including uncommitted work)',
     'HEAD',
   )
   .argument(

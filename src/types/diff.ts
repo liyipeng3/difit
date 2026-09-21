@@ -44,6 +44,11 @@ export interface DiffSelection {
   baseCommitish: string;
   targetCommitish: string;
   baseMode?: BaseMode;
+  // When set, the base is resolved per-repository to that repo's default branch
+  // (origin/HEAD, falling back to origin/main|master) before taking merge-base.
+  // Used by the "auto" target to show branch-vs-default-branch changes,
+  // including uncommitted work, across repositories with different defaults.
+  autoBaseDefaultBranch?: boolean;
 }
 
 export interface DiffResponse {
